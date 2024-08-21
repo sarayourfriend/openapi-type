@@ -2,6 +2,11 @@
 CHANGELOG
 =========
 
+0.2.1
+======
+
+* Add ``nullable`` and modernise types
+
 0.1.0
 ======
 

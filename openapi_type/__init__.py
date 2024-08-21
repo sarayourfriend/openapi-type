@@ -1,8 +1,8 @@
 from enum import Enum
 
 from typing import Literal, NewType
-from typing import Mapping
-from typing import Any, NamedTuple, Optional, Sequence, FrozenSet, Union
+from typing import Any, NamedTuple, Union
+from collections.abc import Sequence, Mapping
 
 from pyrsistent import pmap, pvector
 from pyrsistent.typing import PVector, PMap
@@ -16,17 +16,19 @@ __all__ = ('parse_spec', 'serialize_spec', 'OpenAPI')
 class IntegerValue(NamedTuple):
     type: Literal['integer']
     format: str = ''
-    example: Optional[int] = None
-    default: Optional[int] = None
-    minimum: Optional[int] = None
-    maximum: Optional[int] = None
+    example: None | int = None
+    default: None | int = None
+    minimum: None | int = None
+    maximum: None | int = None
+    nullable: None | bool = None
 
 
 class FloatValue(NamedTuple):
     type: Literal['number']
     format: str = ''
-    example: Optional[float] = None
-    default: Optional[float] = None
+    example: None | float = None
+    default: None | float = None
+    nullable: None | bool = None
 
 
 class StringValue(NamedTuple):
@@ -34,14 +36,16 @@ class StringValue(NamedTuple):
     format: str = ''
     description: str = ''
     enum: PVector[str] = pvector()
-    default: Optional[str] = None
-    pattern: Optional[str] = None
+    default: None | str = None
+    pattern: None | str = None
     example: str = ''
+    nullable: None | bool = None
 
 
 class BooleanValue(NamedTuple):
     type: Literal['boolean']
-    default: Optional[bool] = None
+    default: None | bool = None
+    nullable: None | bool = None
 
 
 class Reference(NamedTuple):
@@ -57,26 +61,30 @@ class ObjectWithAdditionalProperties(NamedTuple):
     """
     type: Literal['object']
     additional_properties: Union[None, bool, 'SchemaType'] = None  # type: ignore
+    nullable: None | bool = None
 
 
 class ArrayValue(NamedTuple):
     type: Literal['array']
     items: 'SchemaType'  # type: ignore
     description: str = ''
+    nullable: None | bool = None
 
 
 class ObjectValue(NamedTuple):
     type: Literal['object']
     properties: RecursiveAttrs
-    required: FrozenSet[str] = frozenset()
+    required: frozenset[str] = frozenset()
     description: str = ''
     xml: Mapping[str, Any] = pmap()
+    nullable: None | bool = None
 
 
 class InlinedObjectValue(NamedTuple):
     properties: RecursiveAttrs
-    required: FrozenSet[str]
+    required: frozenset[str]
     description: str = ''
+    nullable: None | bool = None
 
 
 class ResponseRef(NamedTuple):
@@ -84,6 +92,7 @@ class ResponseRef(NamedTuple):
     """
     operation_id: str
     parameters: Mapping[str, str]
+    nullable: None | bool = None
 
 
 class ObjectRef(NamedTuple):
@@ -94,32 +103,35 @@ class ObjectRef(NamedTuple):
 
 class ProductSchemaType(NamedTuple):
     all_of: Sequence['SchemaType']  # type: ignore
+    nullable: None | bool = None
 
 
 class UnionSchemaTypeAny(NamedTuple):
     any_of: Sequence['SchemaType']  # type: ignore
+    nullable: None | bool = None
 
 
 class UnionSchemaTypeOne(NamedTuple):
     one_of: Sequence['SchemaType']  # type: ignore
+    nullable: None | bool = None
 
 
-SchemaType = Union[ StringValue  # type: ignore
-                  , IntegerValue
-                  , FloatValue
-                  , BooleanValue
-                  , ObjectValue
-                  , ArrayValue
-                  , ResponseRef
-                  , Reference
-                  , ProductSchemaType
-                  , UnionSchemaTypeAny
-                  , UnionSchemaTypeOne
-                  , ObjectWithAdditionalProperties
-                  , InlinedObjectValue
-                  , EmptyValue
-                  ]
-
+SchemaType = (
+    StringValue # type: ignore
+    | IntegerValue
+    | FloatValue
+    | BooleanValue
+    | ObjectValue
+    | ArrayValue
+    | ResponseRef
+    | Reference
+    | ProductSchemaType
+    | UnionSchemaTypeAny
+    | UnionSchemaTypeOne
+    | ObjectWithAdditionalProperties
+    | InlinedObjectValue
+    | EmptyValue
+)
 
 class ParamLocation(Enum):
     QUERY = 'query'
@@ -148,8 +160,8 @@ class OperationParameter(NamedTuple):
     schema: SchemaType
     required: bool = False
     description: str = ''
-    style: Optional[ParamStyle] = None
-    explode: Optional[bool] = None
+    style: None | ParamStyle = None
+    explode: None | bool = None
 
 
 class Header(NamedTuple):
@@ -166,8 +178,8 @@ HeaderName = NewType('HeaderName', str)
 class MediaType(NamedTuple):
     """ https://swagger.io/specification/#media-type-object
     """
-    schema: Optional[SchemaType] = None
-    example: Union[None, str, PMap[str, Any]] = None
+    schema: None | SchemaType = None
+    example: None | str | PMap[str, Any] = None
     examples: Mapping[str, Any] = pmap()
     encoding: Mapping[str, Any] = pmap()
 
@@ -176,7 +188,7 @@ class Response(NamedTuple):
     """ Response of an endpoint
     """
     content: PMap[ContentTypeTag, MediaType] = pmap()
-    headers: PMap[HeaderName, Union[Header, Reference]] = pmap()
+    headers: PMap[HeaderName, Header | Reference] = pmap()
     description: str = ''
 
 
@@ -213,9 +225,9 @@ class InfoLicense(NamedTuple):
 
 
 class InfoContact(NamedTuple):
-    name: Optional[str]
-    email: Optional[str]
-    url: Optional[str]
+    name: None | str
+    email: None | str
+    url: None | str
 
 
 class Info(NamedTuple):
@@ -223,8 +235,8 @@ class Info(NamedTuple):
     """ API version
     """
     title: str
-    license: Optional[InfoLicense]
-    contact: Optional[InfoContact]
+    license: None | InfoLicense
+    contact: None | InfoContact
     terms_of_service: str = ''
     description: str = ''
 
@@ -255,30 +267,30 @@ class RequestBody(NamedTuple):
 class Operation(NamedTuple):
     """ https://swagger.io/specification/#operation-object
     """
-    responses: Mapping[HTTPCode, Union[Reference, Response]]  # union order matters
-    external_docs: Optional[ExternalDoc]
+    responses: Mapping[HTTPCode, Reference | Response]  # union order matters
+    external_docs: None | ExternalDoc
     summary: str = ''
     operation_id: str = ''
-    parameters: FrozenSet[Union[OperationParameter, Reference]] = frozenset()
-    request_body: Union[None, RequestBody, Reference] = None
+    parameters: frozenset[OperationParameter | Reference] = frozenset()
+    request_body: None | RequestBody | Reference = None
     description: str = ''
-    tags: FrozenSet[str] = frozenset()
+    tags: frozenset[str] = frozenset()
     callbacks: Mapping[str, Mapping[str, Any]] = pmap()
-    security: Optional[Any] = None
+    security: None | Any = None
 
 
 class PathItem(NamedTuple):
     """ Describes endpoint methods
     """
-    head: Optional[Operation]
-    get: Optional[Operation]
-    post: Optional[Operation]
-    put: Optional[Operation]
-    patch: Optional[Operation]
-    delete: Optional[Operation]
-    trace: Optional[Operation]
+    head: None | Operation
+    get: None | Operation
+    post: None | Operation
+    put: None | Operation
+    patch: None | Operation
+    delete: None | Operation
+    trace: None | Operation
     servers: Sequence[Server] = pvector()
-    ref: Optional[Ref] = None
+    ref: None | Ref = None
     summary: str = ''
     description: str = ''
 
@@ -288,7 +300,7 @@ SecurityName = NewType('SecurityName', str)
 
 class SpecTag(NamedTuple):
     name: str
-    external_docs: Optional[ExternalDoc]
+    external_docs: None | ExternalDoc
     description: str = ''
 
 
@@ -304,7 +316,7 @@ class OpenAPI(NamedTuple):
     servers: Sequence[Server] = pvector()
     security: Sequence[Mapping[SecurityName, Sequence[str]]] = pvector()
     tags: Sequence[SpecTag] = pvector()
-    external_docs: Optional[ExternalDoc] = None
+    external_docs: None | ExternalDoc = None
 
 
 overrides = {
